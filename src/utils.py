@@ -81,12 +81,11 @@ def read_excel(patch_to_file_excel: str) -> list[dict[Any, Any]]:
 
 def read_excel_to_df(path_to_file_excel: str) -> list[dict[Any, Any]] | DataFrame:
     """Принимает путь до .xlsx файла финансовых операций, возвращает финансовые операции в формате DataFram."""
-    if not path_to_file_excel:
-        return [dict()]
-    excel_data_df = pd.read_excel(path_to_file_excel)
-    df_excel_data_replace_none = excel_data_df.astype(object).where(pd.notnull(excel_data_df), "")
-    # result_list_of_dict = df_excel_data_replace_none.to_dict(orient="records")
-    return df_excel_data_replace_none
+    if not path_to_file_excel or not os.path.exists(path_to_file_excel):
+        return [{}]
+    df = pd.read_excel(path_to_file_excel)
+    # Заменяем NaN на пустые строки напрямую
+    return df.fillna("")
 
 
 def transformed_date(first_str_date: str) -> str|None:
@@ -139,7 +138,7 @@ def cart_agg_for_main(operations_df: pd.DataFrame, start_data: str, stop_data: s
     df = operations_df.copy()
     df = df[df["Номер карты"].notnull()]
 
-    # Доп. очистка: убираем пробелы и пустые строки в номерах карт
+    # Доп. очистка, убираем пробелы и пустые строки в номерах карт
     df["Номер карты"] = df["Номер карты"].astype(str).str.strip()
     df = df[df["Номер карты"] != ""]
 

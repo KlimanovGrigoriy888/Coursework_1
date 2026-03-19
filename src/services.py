@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from datetime import datetime
 from typing import Any
 
@@ -9,8 +10,10 @@ from src.utils import read_excel
 PATH_TO_FILE_EXCEL = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "operations.xlsx")
 data = read_excel(PATH_TO_FILE_EXCEL)
 
-logger_cashback_benefit = setup_logging("read_json")
-logger_investment_bank = setup_logging("read_json")
+logger_cashback_benefit = setup_logging("cashback_benefit")
+logger_investment_bank = setup_logging("investment_bank")
+logger_simple_search = setup_logging("simple_search")
+logger_search_with_phone_number = setup_logging("search_with_phone_number")
 
 def cashback_benefit(data_list: list[dict[str, Any]], year: int, month: int) -> str:
     """
@@ -79,8 +82,9 @@ def investment_bank(month: str, transactions: list[dict[str, Any]], limit: int) 
 
     for transaction in transactions:
         try:
-            # 1. Извлекаем данные даты из списка транзакций
+            #  Извлекаем данные даты из списка транзакций
             date_str = transaction.get("Дата операции")
+            # Пропускаем операции в которых нет даты
             if not date_str:
                 continue
             # Преобразуем полученные данные даты в объект datatime и пропускаем ненужные месяцы для расчета
@@ -88,7 +92,7 @@ def investment_bank(month: str, transactions: list[dict[str, Any]], limit: int) 
             if dt_obj.strftime("%Y-%m") != month:
                 continue
 
-            # Получаем сумму и чистим (убираем минус и меняем запятую)
+            # Получаем сумму и чистим (убираем минус, меняем запятую и убираем ненужные пробелы)
             raw_amount = transaction.get("Сумма операции", 0)
             clean_amount = str(raw_amount).replace(',', '.').replace('-', '').strip()
             amount = float(clean_amount)
@@ -109,7 +113,76 @@ def investment_bank(month: str, transactions: list[dict[str, Any]], limit: int) 
     return round(amount_investment_bank, 2)
 
 
-if __name__ == "__main__":
-    print(data)
-    print(cashback_benefit(data, "2021", "02"))
+def simple_search(search_data: str, transactions: list[dict]) -> str:
+    """Функция, принимает на вход строку для поиска search_data и transactions — список словарей,
+     содержащий информацию о транзакциях, возвращает JSON-ответ со всеми транзакциями, содержащими запрос
+     в описании или категории."""
+
+    logger_simple_search.info(f"Начало поиска по запросу {search_data}")
+
+    # Если строка пустая возвращаем пустой список в формате JSON
+    if not search_data:
+        logger_simple_search.warning("Передан пустой поисковый запрос")
+        return json.dumps([], ensure_ascii=False)
+
+    searched_transactions = []
+    search_data_lower = search_data.lower()  # Приводим к нижнему регистру поисковую строку
+
+    for transaction in transactions:
+        try:
+            # Получаем значения, заменяя None на пустую строку, чтобы не было исключения
+            # и приводим к нижнему регистру .lower()
+            description = str(transaction.get("Описание", "")).lower()
+            category = str(transaction.get("Категория", "")).lower()
+
+            # Проверяем вхождение строки в искомых полях в описании или категории
+            if search_data_lower in description or search_data_lower in category:
+                # Добавляем транзакцию если строка была найдена
+                searched_transactions.append(transaction)
+
+        except Exception as e:
+            logger_simple_search.error(f"Ошибка при обработке транзакции {e}")
+            continue
+
+    logger_simple_search.info(f"Поиск завершен. Найдено совпадений: {len(searched_transactions)}")
+
+    return json.dumps(searched_transactions, ensure_ascii=False, indent=4)
+
+
+def search_with_phone_number(transactions: list[dict]) -> str:
+    """Функция, принимает на вход transactions — список словарей, содержащий информацию о транзакциях,
+    возвращает JSON-ответ со всеми транзакциями, содержащими в описании мобильные номера."""
+
+    logger_search_with_phone_number.info(f"Начало поиска транзакций с телефонными номерами")
+
+    searched_transactions = []
+    # Компилируем паттерн для поиска транзакций с телефонными номерами
+    phone_pattern = re.compile(r'\+?\d \d{3} \d{2,3}-?\d{2}-?\d{2}')
+
+    for transaction in transactions:
+        try:
+            # Получаем значения, заменяя None на пустую строку, чтобы не было исключения
+            # и приводим к нижнему регистру .lower()
+            description = str(transaction.get("Описание", ""))
+
+            # Проверяем найден ли нужный паттерн в описании транзакции
+            if phone_pattern.search(description):
+                # Добавляем транзакцию если паттерн был найден
+                searched_transactions.append(transaction)
+
+        except Exception as e:
+            logger_search_with_phone_number.error(f"Ошибка при обработке транзакции {e}")
+            continue
+
+    logger_search_with_phone_number.info(f"Поиск завершен. Найдено совпадений: {len(searched_transactions)}")
+
+    return json.dumps(searched_transactions, ensure_ascii=False, indent=4)
+
+
+
+# if __name__ == "__main__":
+    # print(data)
+    # print(cashback_benefit(data, "2021", "02"))
     # print(investment_bank("2021-03",data, 50))
+    # print(simple_search('Переводы', data))
+    # print(search_with_phone_number(data))
