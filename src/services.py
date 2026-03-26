@@ -17,8 +17,10 @@ logger_search_with_phone_number = setup_logging("search_with_phone_number")
 
 def cashback_benefit(data_list: list[dict[str, Any]], year: int, month: int) -> str:
     """
-    Анализирует список транзакций и подсчитывает потенциальный кешбэк
-    по категориям за указанный год и месяц.
+    Функция анализирует список транзакций и подсчитывает потенциальный кешбэк по категориям
+     за указанный год и месяц, принимает на вход data - данные с транзакциями, year — год и
+     month — месяц, за который проводится анализ. Возвращает JSON с анализом, сколько на каждой
+      категории можно заработать кешбэка.
     """
     logger_cashback_benefit.info(f"Начало анализа кэшбэка за {month}.{year}")
 
@@ -71,6 +73,7 @@ def investment_bank(month: str, transactions: list[dict[str, Any]], limit: int) 
      transactions — список словарей, содержащий информацию о транзакциях, в которых содержатся следующие поля.
      limit — предел, до которого нужно округлять суммы операций (целое число).
      Возвращает сумму, которую удалось бы отложить в «Инвесткопилку»."""
+
     logger_investment_bank.info(f"Начало анализа кэшбэка за {month} c лимитом {limit}")
 
     # Сумма "инвесткопилки": Сумма
@@ -113,7 +116,7 @@ def investment_bank(month: str, transactions: list[dict[str, Any]], limit: int) 
     return round(amount_investment_bank, 2)
 
 
-def simple_search(search_data: str, transactions: list[dict]) -> str:
+def simple_search(search_data: str, transactions: list[dict]| None) -> str:
     """Функция, принимает на вход строку для поиска search_data и transactions — список словарей,
      содержащий информацию о транзакциях, возвращает JSON-ответ со всеми транзакциями, содержащими запрос
      в описании или категории."""
@@ -123,6 +126,11 @@ def simple_search(search_data: str, transactions: list[dict]) -> str:
     # Если строка пустая возвращаем пустой список в формате JSON
     if not search_data:
         logger_simple_search.warning("Передан пустой поисковый запрос")
+        return json.dumps([], ensure_ascii=False)
+
+    # Если нет файла с данными возвращаем пустую строку
+    if transactions is None:
+        logger_simple_search.warning("Передан пустой файл для поиска данных")
         return json.dumps([], ensure_ascii=False)
 
     searched_transactions = []
@@ -180,9 +188,9 @@ def search_with_phone_number(transactions: list[dict]) -> str:
 
 
 
-# if __name__ == "__main__":
-    # print(data)
-    # print(cashback_benefit(data, "2021", "02"))
+if __name__ == "__main__":
+    print(data)
+    print(cashback_benefit(data, "2021", "02"))
     # print(investment_bank("2021-03",data, 50))
     # print(simple_search('Переводы', data))
     # print(search_with_phone_number(data))
