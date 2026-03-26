@@ -1,5 +1,6 @@
 from datetime import datetime as dt
 from json import JSONDecodeError
+from string import ascii_letters
 from typing import Any, List, Dict, Tuple
 from dotenv import load_dotenv
 import requests
@@ -90,15 +91,19 @@ def read_excel_to_df(path_to_file_excel: str) -> list[dict[Any, Any]] | DataFram
 
 def transformed_date(first_str_date: str) -> str|None:
     """Принимает строку в формате DD.MM.YYYY HH:MM:SS и возвращает "YYYY.MM.DD HH:MM:SS"
-     для корректного сравнения строк в функции cart_agg_for_main()."""
+     для корректного сравнения строк в DataFrame."""
     # Если дата пустая или не строка — возвращаем None
     try:
+        # Если Pandas уже превратил ячейку в дату (объект)
+        if hasattr(first_str_date, 'strftime'):
+            return first_str_date.strftime('%Y.%m.%d %H:%M:%S')
         # Если дата пустая или не строка — возвращаем None
-        if not isinstance(first_str_date, str):
-            return None
-        valid_format_date = dt.strptime(first_str_date, '%d.%m.%Y %H:%M:%S')
-        return valid_format_date.strftime('%Y.%m.%d %H:%M:%S')
-    except ValueError:
+        if isinstance(first_str_date, str):
+            valid_format_date = dt.strptime(first_str_date, '%d.%m.%Y %H:%M:%S')
+            return valid_format_date.strftime('%Y.%m.%d %H:%M:%S')
+
+        return None
+    except (ValueError, TypeError):
         return None
 
 
@@ -142,7 +147,7 @@ def cart_agg_for_main(operations_df: pd.DataFrame, start_data: str, stop_data: s
     df["Номер карты"] = df["Номер карты"].astype(str).str.strip()
     df = df[df["Номер карты"] != ""]
 
-    # 2. Подготовка числовых колонок и дат
+    # 2. Подготовка числовых колонок и дат с использованием внешних функций clean_amount и transformed_date
     target_col = "Сумма операции с округлением"
     df[target_col] = df[target_col].map(clean_amount)
     df["Дата для фильтра"] = df["Дата операции"].map(transformed_date)
@@ -152,8 +157,12 @@ def cart_agg_for_main(operations_df: pd.DataFrame, start_data: str, stop_data: s
 
     # 4. Формирование списка карт
     cards_list = []
+    # Перебор по 'Номер карты' как единица группы и сгруппированному датафрейму 'group' отнесенному к этой единице
     for card_number, group in filtered_df.groupby("Номер карты"):
-        total = float(group[target_col].sum())  # Конвертация в обычный float
+        # В сгруппированном датафрейме номера карты производим подсчет суммы "Сумма операции с округлением"
+        total = float(group[target_col].sum())  # Конвертация в обычный float "Сумма операции с округлением"
+        # Добавляем в результирующий список номер карты ее посчитанную сумму "Сумма операции с округлением"
+        # и посчитанный кэшбэк 1 рубль на каждые 100 рублей
         cards_list.append({
             "last_digits": card_number.replace('*', ''),
             "total_spent": round(total, 2),
@@ -226,7 +235,7 @@ if __name__ == "__main__":
     print(filtered_data)
 
     # print(get_date("29.12.2021 22:32:24"))
-    print(get_range_data("2024-03-11 14:26:55"))
+    # print(get_range_data("2024-03-11 14:26:55"))
     # result_from_json = read_json_file(PATH_TO_FILE_USER_SETTINGS)
     # # print(result_from_json)
     # result_settings = settings_for_api(PATH_TO_FILE_USER_SETTINGS)
