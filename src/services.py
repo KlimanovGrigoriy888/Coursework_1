@@ -60,8 +60,8 @@ def cashback_benefit(data_list: list[dict[str, Any]], year: int, month: int) -> 
             logger_cashback_benefit.error(f"Ошибка при обработке строки: {e}")
             continue
 
-    # Округляем итоговые суммы до целого числа (как в вашем ТЗ)
-    result = {cat: int(total) for cat, total in category_cashback.items()}
+    # Округляем итоговые суммы до целого числа
+    result = {category: int(total_sum) for category, total_sum in category_cashback.items()}
 
     logger_cashback_benefit.info("Анализ завершен успешно")
     return json.dumps(result, ensure_ascii=False, indent=4)
@@ -188,9 +188,10 @@ def search_with_phone_number(transactions: list[dict]) -> str:
 
 
 
-if __name__ == "__main__":
-    print(data)
-    print(cashback_benefit(data, "2021", "02"))
+# if __name__ == "__main__":
+    # data = read_excel(PATH_TO_FILE_EXCEL)
+    # print(data)
+    # print(cashback_benefit(data, "2021", "02"))
     # print(investment_bank("2021-03",data, 50))
     # print(simple_search('Переводы', data))
     # print(search_with_phone_number(data))
