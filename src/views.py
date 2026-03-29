@@ -60,7 +60,7 @@ def for_main(input_date_str: str) -> str:
         return json.dumps({"error": str(e)}, ensure_ascii=False)
 
 
-def events(input_data: pd.DataFrame) -> dict[list|Any]:
+def events(input_date_str: str, ) -> dict[list|Any]:
     pass
 
 if __name__ == "__main__":
