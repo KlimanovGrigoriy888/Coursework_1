@@ -3,7 +3,7 @@ import pytest
 from datetime import datetime
 
 from src.utils import time_of_day, read_excel_to_df, read_json_file, transformed_date, get_range_data, clean_amount, \
-    settings_for_api, get_currency_and_stocks, cart_agg_for_main
+    settings_for_api, get_currency_and_stocks, cart_agg_for_main, read_excel
 import pandas as pd
 import json
 
@@ -29,7 +29,7 @@ def test_time_of_day_except():
         assert result == "Ошибка обработки даты Сбой системы"
 
 
-def test_read_excel_file_not_found():
+def test_read_excel_to_df_file_not_found():
     # Тест случая, когда файла не существует
     # Патчим проверку пути, чтобы она вернула False
     with patch('src.utils.os.path.exists') as mock_exists:
@@ -41,13 +41,13 @@ def test_read_excel_file_not_found():
         mock_exists.assert_called_once_with("non_existent.xlsx")
 
 
-def test_read_excel_empty_path():
+def test_read_excel_to_df_empty_path():
     # Тест пустого пути
     result = read_excel_to_df("")
     assert result == [{}]
 
 
-def test_read_excel_success_with_fillna():
+def test_read_excel_to_df_success_with_fillna():
     # Тест успешного чтения и замены NaN
     # 1. Создаем фейковый DF, где есть NaN (пустая ячейка)
     mock_df = pd.DataFrame({
@@ -75,6 +75,47 @@ def test_read_excel_invalid_paths(invalid_path):
     assert read_excel_to_df(invalid_path) == [{}]
 
 
+def test_read_excel_not_found_file():
+    # Патчим проверку отсутствия наличия пути
+    with patch('src.utils.os.path.exists') as mock_exists:
+        mock_exists.return_value = False
+        result = read_excel("fake_file.xlsx")
+        assert result == [dict()]
+
+
+def test_read_excel_empty_path():
+    # Проверка отсутствия названия файла
+    result = read_excel("")
+    assert result == [dict()]
+
+
+def test_read_excel_success():
+    # Создаем фейковый DF
+    mock_df = pd.DataFrame({
+        'Дата операции': [ '31.12.2021 16:44:00', '31.12.2021 16:42:04'],
+        'Номер карты': ['*7197', None],
+        'Сумма операции': [-160.89, None],
+        'Категория': ['Супермаркеты', None],
+        'Amount': [100.0, None],
+        'Category': ['Food', None],
+
+    })
+
+    # Патчим проверку наличия пути и получение Dataframe
+    with patch('src.utils.os.path.exists') as mock_exists, \
+        patch('src.utils.pd.read_excel') as mock_read:
+        mock_exists.return_value = True
+        mock_read.return_value = mock_df
+        # Подсовываем пустышку в качестве пути к файлу
+        result = read_excel("fake_file.xlsx")
+        print(result)
+        # Проверка тестирования
+        assert result[0]['Дата операции'] == '31.12.2021 16:44:00'
+        assert result[0]['Номер карты'] == '*7197'
+        assert result[1]['Номер карты'] == ''
+        assert len(result) == 2
+
+
 def test_read_json_file_empty_path():
     # Тест пустого пути
     result = read_json_file("")
@@ -96,7 +137,6 @@ def data_json():
             "TSLA"
         ]
     }
-
 
 def test_read_json_file_success(data_json):
     # 1. Используем mock_open для имитации открытия файла
@@ -264,6 +304,10 @@ def test_get_currency_and_stocks():
 
         status, data = get_currency_and_stocks()
 
+        # Проверка на соответствие запроса ответу
+        assert data == {'AAPL': {'price': '248.62000'}, 'AMZN': {'price': '199.3'},
+                         'USD/RUB': {'price': '81.47078'},
+                         'EUR/RUB': {'price': '93.9486'}}
         assert status is True
         assert data['AAPL'] == {'price': '248.62000'}
 
@@ -304,7 +348,6 @@ def test_df():
         "Описание": ["Магнит", "Zara", "re:Store", "Ошибка", "Ошибка"]
     })
 
-
 def test_cart_agg_for_main(test_df):
     # Задаем диапазон дат
     start = "2023.10.01 00:00:00"
@@ -316,15 +359,16 @@ def test_cart_agg_for_main(test_df):
 
         result = cart_agg_for_main(test_df, start, stop)
 
-        # # Проверяем приветствие
-        # assert result['greeting'] == '«Добрый день»'
-        # assert result == {'greeting': '«Добрый день»',
-        #                   'cards': [{'last_digits': '1234', 'total_spent': 300.0, 'cashback': 3.0}],
-        #                   'top_transactions': [
-        #                       {'date': '05.10.2023', 'amount': 200.0, 'category': 'Одежда', 'description': 'Zara'},
-        #                       {'date': '01.10.2023', 'amount': 100.0, 'category': 'Еда', 'description': 'Магнит'}]}
+        # Проверяем приветствие
+        assert result['greeting'] == '«Добрый день»'
+        # Проверяю весь ответ
+        assert result == {'greeting': '«Добрый день»',
+                          'cards': [{'last_digits': '1234', 'total_spent': 300.0, 'cashback': 3.0}],
+                          'top_transactions': [
+                              {'date': '05.10.2023', 'amount': 200.0, 'category': 'Одежда', 'description': 'Zara'},
+                              {'date': '01.10.2023', 'amount': 100.0, 'category': 'Еда', 'description': 'Магнит'}]}
 
-        # 2. Проверяем карты (в фильтр должны попасть только две операции по карте *1234)
+        # Проверяем карты (в фильтр должны попасть только две операции по карте *1234)
         # Карта *5678 не должна попасть, так как её дата 15.10 вне диапазона до 10.10
         assert len(result["cards"]) == 1
         card_info = result["cards"][0]
@@ -332,7 +376,7 @@ def test_cart_agg_for_main(test_df):
         assert card_info["total_spent"] == 300.0  # 100 + 200
         assert card_info["cashback"] == 3.0       # 300 / 100
 
-        # 3. Проверяем топ транзакций (только те, что прошли фильтр по дате)
+        # Проверяем топ транзакций (только те, что прошли фильтр по дате)
         assert len(result["top_transactions"]) == 2
         # Первая в топе должна быть самая крупная (200.0)
         assert result["top_transactions"][0]["amount"] == 200.0
