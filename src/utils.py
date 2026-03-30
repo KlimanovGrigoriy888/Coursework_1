@@ -86,12 +86,13 @@ def read_json_file(path_to_file_json: str) -> dict[str, Any]:
 #         return "{}"
 
 
-def read_excel(patch_to_file_excel: str) -> list[dict[Any, Any]]:
+def read_excel(path_to_file_excel: str) -> list[dict[Any, Any]]:
     """Принимает путь до .xlsx файла финансовых операций, возвращает список словарей с транзакциями.
      !!!! Пока что нигде не используется """
-    if not patch_to_file_excel:
+    if not path_to_file_excel or not os.path.exists(path_to_file_excel):
         return [dict()]
-    excel_data_df = pd.read_excel(patch_to_file_excel)
+    excel_data_df = pd.read_excel(path_to_file_excel)
+    # Чистим датафрейм от NaN значений заменяя эти значения на пустую строку
     df_excel_data_replace_none = excel_data_df.astype(object).where(pd.notnull(excel_data_df), "")
     result_list_of_dict = df_excel_data_replace_none.to_dict(orient='records')
     return result_list_of_dict
