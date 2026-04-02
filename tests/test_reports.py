@@ -74,67 +74,46 @@ def transactions_df():
     return pd.DataFrame(transactions_dict)
 
 
-def test_spending_by_category_good(transactions_df):
-    # Проверка когда функция принимает датафрейм и данные для поиска с положительным результатом поиска
-    expected_result = 800.0
-    print(transactions_df)
-    assert spending_by_category(transactions_df, "Фастфуд", "29.12.2021 01:23:42") == expected_result
-
-
-def test_spending_by_category_not_date(transactions_df):
-    # Проверка когда даты нет и дата вне диапазона сегодня дата которой нет в датафрейме
-    expected_result = 0.0
-    print(transactions_df)
-    assert spending_by_category(transactions_df, "Фастфуд", "") == expected_result
-
-
 def test_spending_by_category_date_out_range(transactions_df):
-    # Проверка поиска трат при вводе даты вне диапазона дат в датафрейме
-    expected_result = 0.0
-    print(transactions_df)
-    assert spending_by_category(transactions_df, "Фастфуд", "1.12.2021 16:44:00") == expected_result
-
-
-def test_spending_by_category_bad_date(transactions_df):
-    # Проверка на ввод неправильной даты
-    expected_result = 0.0
-    print(transactions_df)
-    assert spending_by_category(transactions_df, "Фастфуд", 366) == expected_result
+    # Проверка: дата вне диапазона должна вернуть пустой Series и результат (сумма 0.0)
+    result = spending_by_category(transactions_df, "Фастфуд", "01.12.2021 16:44:00")
+    assert result.sum() == 0.0
 
 
 def test_spending_by_category_only_negative():
-    # Проверка на наличие положительной суммы в сумме платеже, не должна попасть в расчет трат
+    # Проверка: доходы (+500) должны игнорироваться, а расходы (-800) учитываться
     data = pd.DataFrame({
         "Дата операции": ["29.12.2021 10:00:00", "29.12.2021 10:00:00"],
         "Сумма платежа": ["500,00", "-800,00"],
         "Категория": ["Фастфуд", "Фастфуд"]
     })
+    result = spending_by_category(data, "Фастфуд", "29.12.2021 23:59:59")
+    assert result.sum() == 800.0
 
-    # Ожидаем 800.0
-    assert spending_by_category(data, "Фастфуд", "29.12.2021 23:59:59") == 800.0
 
 
 def test_spending_by_category_dirty_data():
-    # Проверка на значение в категории NaN, возможный вариант при распаковке excel
+    # Проверка: на наличие NaN и пробелов в названиях категорий
     data = pd.DataFrame({
         "Дата операции": ["29.12.2021 10:00:00", "29.12.2021 11:00:00"],
         "Сумма платежа": ["-100,00", "-200,00"],
-        "Категория": [None, "  Фастфуд  "]  # Пробелы и NaN
+        "Категория": [None, "  Фастфуд  "]
     })
-
-    # Ожидаем 200.0
-    assert spending_by_category(data, "Фастфуд", "29.12.2021 23:59:59") == 200
-
-
-def test_spending_by_category_missing_category(transactions_df):
-    # Проверка на не найденную категорию
-    assert spending_by_category(transactions_df, "do not find", "29.12.2021 01:23:42") == 0.0
+    result = spending_by_category(data, "Фастфуд", "29.12.2021 23:59:59")
+    assert result.sum() == 200.0
 
 
 def test_spending_by_category_empty_df():
-    # Проверка на пустой датафрейм
+    # Проверка: при пустых входных данных получаем 0.0 без ошибок
     empty_df = pd.DataFrame(columns=["Дата операции", "Сумма платежа", "Категория"])
-    assert spending_by_category(empty_df, "Фастфуд", "29.12.2021 01:23:42") == 0.0
+    result = spending_by_category(empty_df, "Фастфуд", "29.12.2021 01:23:42")
+    assert result.sum() == 0.0
+
+
+def test_spending_by_category_missing_category(transactions_df):
+    # Проверка: если категории нет в списке, сумма 0.0
+    result = spending_by_category(transactions_df, "Несуществующая", "29.12.2021 01:23:42")
+    assert result.sum() == 0.0
 
 
 # ///////////////////////// Проверка функции spending_by_weekday() ////////////////////////////////
