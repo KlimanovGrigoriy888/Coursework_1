@@ -15,11 +15,12 @@ logger_investment_bank = setup_logging("investment_bank")
 logger_simple_search = setup_logging("simple_search")
 logger_search_with_phone_number = setup_logging("search_with_phone_number")
 
+
 def cashback_benefit(data_list: list[dict[str, Any]], year: int, month: int) -> str:
     """
-    Функция принимает на вход список словарей с транзакциями, анализирует список транзакций и подсчитывает потенциальный
-     кешбэк по категориям за указанный год и месяц, принимает на вход data - данные с транзакциями, year — год и
-     month — месяц, за который проводится анализ. Возвращает JSON с анализом, сколько на каждой
+    Функция принимает на вход список словарей с транзакциями, анализирует список транзакций и подсчитывает
+    потенциальный кешбэк по категориям за указанный год и месяц, принимает на вход data - данные с транзакциями,
+    year — год и month — месяц, за который проводится анализ. Возвращает JSON с анализом, сколько на каждой
       категории можно заработать кешбэка.
     """
     logger_cashback_benefit.info(f"Начало анализа кэшбэка за {month}.{year}")
@@ -51,7 +52,7 @@ def cashback_benefit(data_list: list[dict[str, Any]], year: int, month: int) -> 
                     cashback_val = 0.0
                 else:
                     # Заменяем запятую на точку для конвертации во float
-                    cashback_val = float(str(raw_cashback).replace(',', '.'))
+                    cashback_val = float(str(raw_cashback).replace(",", "."))
 
                 # 4. Аккумуляция суммы
                 category_cashback[category] = category_cashback.get(category, 0.0) + cashback_val
@@ -67,12 +68,12 @@ def cashback_benefit(data_list: list[dict[str, Any]], year: int, month: int) -> 
     return json.dumps(result, ensure_ascii=False, indent=4)
 
 
-def investment_bank(month: str, transactions: list[dict[str, Any]], limit: int) -> float :
+def investment_bank(month: str, transactions: list[dict[str, Any]], limit: int) -> float:
     """Функция, принимает на вход:
-     month — месяц в формате 'YYYY-MM', для которого рассчитывается отложенная сумма.
-     transactions — список словарей, содержащий информацию о транзакциях, в которых содержатся следующие поля.
-     limit — предел, до которого нужно округлять суммы операций (целое число).
-     Возвращает сумму, которую удалось бы отложить в «Инвесткопилку»."""
+    month — месяц в формате 'YYYY-MM', для которого рассчитывается отложенная сумма.
+    transactions — список словарей, содержащий информацию о транзакциях, в которых содержатся следующие поля.
+    limit — предел, до которого нужно округлять суммы операций (целое число).
+    Возвращает сумму, которую удалось бы отложить в «Инвесткопилку»."""
 
     logger_investment_bank.info(f"Начало анализа кэшбэка за {month} c лимитом {limit}")
 
@@ -97,7 +98,7 @@ def investment_bank(month: str, transactions: list[dict[str, Any]], limit: int) 
 
             # Получаем сумму и чистим (убираем минус, меняем запятую и убираем ненужные пробелы)
             raw_amount = transaction.get("Сумма операции", 0)
-            clean_amount = str(raw_amount).replace(',', '.').replace('-', '').strip()
+            clean_amount = str(raw_amount).replace(",", ".").replace("-", "").strip()
             amount = float(clean_amount)
             # Исключаем сумму меньше 0
             if amount <= 0:
@@ -116,10 +117,10 @@ def investment_bank(month: str, transactions: list[dict[str, Any]], limit: int) 
     return round(amount_investment_bank, 2)
 
 
-def simple_search(search_data: str, transactions: list[dict]| None) -> str:
+def simple_search(search_data: str, transactions: list[dict] | None) -> str:
     """Функция, принимает на вход строку для поиска search_data и transactions — список словарей,
-     содержащий информацию о транзакциях, возвращает JSON-ответ со всеми транзакциями, содержащими запрос
-     в описании или категории."""
+    содержащий информацию о транзакциях, возвращает JSON-ответ со всеми транзакциями, содержащими запрос
+    в описании или категории."""
 
     logger_simple_search.info(f"Начало поиска по запросу {search_data}")
 
@@ -161,11 +162,11 @@ def search_with_phone_number(transactions: list[dict]) -> str:
     """Функция, принимает на вход transactions — список словарей, содержащий информацию о транзакциях,
     возвращает JSON-ответ со всеми транзакциями, содержащими в описании мобильные номера."""
 
-    logger_search_with_phone_number.info(f"Начало поиска транзакций с телефонными номерами")
+    logger_search_with_phone_number.info("Начало поиска транзакций с телефонными номерами")
 
     searched_transactions = []
     # Компилируем паттерн для поиска транзакций с телефонными номерами
-    phone_pattern = re.compile(r'\+?\d \d{3} \d{2,3}-?\d{2}-?\d{2}')
+    phone_pattern = re.compile(r"\+?\d \d{3} \d{2,3}-?\d{2}-?\d{2}")
 
     for transaction in transactions:
         try:
@@ -187,11 +188,10 @@ def search_with_phone_number(transactions: list[dict]) -> str:
     return json.dumps(searched_transactions, ensure_ascii=False, indent=4)
 
 
-
 # if __name__ == "__main__":
 #     data = read_excel(PATH_TO_FILE_EXCEL)
 #     print(data)
 #     print(cashback_benefit(data, "2021", "02"))
-    # print(investment_bank("2021-03",data, 50))
-    # print(simple_search('Переводы', data))
-    # print(search_with_phone_number(data))
+# print(investment_bank("2021-03",data, 50))
+# print(simple_search('Переводы', data))
+# print(search_with_phone_number(data))

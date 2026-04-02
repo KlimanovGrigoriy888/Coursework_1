@@ -2,15 +2,14 @@ import json
 import os
 from typing import Any
 
-import pandas as pd
-
-from src.utils import get_range_data, read_excel_to_df, cart_agg_for_main, get_currency_and_stocks, time_of_day
+from src.utils import cart_agg_for_main, get_currency_and_stocks, get_range_data, read_excel_to_df, time_of_day
 
 PATH_TO_FILE_EXCEL = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "operations.xlsx")
 
+
 def for_main(input_date_str: str) -> str:
-    """ Принимает на вход строку с датой и временем в формате YYYY-MM-DD HH:MM:SS,
-     возвращает JSON-ответ в нужном формате"""
+    """Принимает на вход строку с датой и временем в формате YYYY-MM-DD HH:MM:SS,
+    возвращает JSON-ответ в нужном формате"""
     try:
         # 1. Подготовка дат (от 1-го числа до user_date_str)
         date_range = get_range_data(input_date_str)
@@ -19,11 +18,7 @@ def for_main(input_date_str: str) -> str:
         df = read_excel_to_df(PATH_TO_FILE_EXCEL)
 
         # 3. Агрегация данных по картам и транзакциям
-        report_data = cart_agg_for_main(
-            df,
-            date_range["start_data"],
-            date_range["end_data"]
-        )
+        report_data = cart_agg_for_main(df, date_range["start_data"], date_range["end_data"])
 
         # 4. Получение курсов валют и акций через API
         success, api_raw = get_currency_and_stocks()
@@ -36,15 +31,11 @@ def for_main(input_date_str: str) -> str:
             for symbol, info in api_raw.items():
                 price = float(info.get("price", 0))
                 if "/RUB" in symbol:
-                    currency_rates.append({
-                        "currency": symbol.split('/')[0],  # Берем только код валюты (USD)
-                        "rate": round(price, 2)
-                    })
+                    currency_rates.append(
+                        {"currency": symbol.split("/")[0], "rate": round(price, 2)}  # Берем только код валюты (USD)
+                    )
                 else:
-                    stock_prices.append({
-                        "stock": symbol,
-                        "price": round(price, 2)
-                    })
+                    stock_prices.append({"stock": symbol, "price": round(price, 2)})
 
         # 5. Сборка финального JSON-ответа по вашему шаблону
         result = {
@@ -52,7 +43,7 @@ def for_main(input_date_str: str) -> str:
             "cards": report_data["cards"],
             "top_transactions": report_data["top_transactions"],
             "currency_rates": currency_rates,
-            "stock_prices": stock_prices
+            "stock_prices": stock_prices,
         }
         return json.dumps(result, ensure_ascii=False, indent=4)
     except Exception as e:
@@ -60,8 +51,11 @@ def for_main(input_date_str: str) -> str:
         return json.dumps({"error": str(e)}, ensure_ascii=False)
 
 
-def events(input_date_str: str, ) -> dict[list|Any]:
+def events(
+    input_date_str: str,
+) -> dict[list | Any]:
     pass
+
 
 if __name__ == "__main__":
     print(for_main("2021-03-11 14:26:55"))

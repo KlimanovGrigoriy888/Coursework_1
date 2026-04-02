@@ -1,5 +1,4 @@
 import json
-from unittest.mock import patch
 
 import pytest
 
@@ -66,9 +65,10 @@ def data_test_list():
         }
     ]
 
+
 def test_simple_search_find(data_test_list):
     # Проверка удачного поиска
-    result = simple_search('Переводы',data_test_list)
+    result = simple_search('Переводы', data_test_list)
     result_list = json.loads(result)
 
     assert len(result_list) == 1
@@ -77,11 +77,12 @@ def test_simple_search_find(data_test_list):
 
 def test_simple_search_find_other_field(data_test_list):
     # Проверка наличия других данных в результате
-    result = simple_search('Переводы',data_test_list)
+    result = simple_search('Переводы', data_test_list)
     result_list = json.loads(result)
 
     assert len(result_list) == 1
     assert "Кредитная карта" in result_list[0]["Описание"]
+
 
 def test_simple_search_not_search_data(data_test_list):
     # Когда нет данных поисковых данных
@@ -108,6 +109,7 @@ def data_test_list_with_phone_number():
         {"id": 4, "Описание": "МТС Mobile +7 981 333-44-55"}
     ]
 
+
 def test_search_with_phone_number(data_test_list_with_phone_number):
     # Получаем результат в json ответе
     result_json = search_with_phone_number(data_test_list_with_phone_number)
@@ -124,4 +126,3 @@ def test_search_with_phone_number(data_test_list_with_phone_number):
     assert len(result_list) == 3
     # Проверяем результат
     assert result_list[0]["Описание"] == "Я МТС +7 921 11-22-33"
-

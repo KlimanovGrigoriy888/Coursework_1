@@ -59,8 +59,7 @@ def transactions_df():
                                            "31.12.2021 01:23:42"],
                          "Сумма платежа": [
                              "-160,89", "-64,00", "-118,12", "-78,05",
-                             "-564,00", "-800,00", "-20000,00", "-500,00"
-                         ],
+                             "-564,00", "-800,00", "-20000,00", "-500,00"],
                          "Категория": ["Супермаркеты",
                                        "Различные товары",
                                        "Переводы",
@@ -89,7 +88,6 @@ def test_spending_by_category_only_negative():
     })
     result = spending_by_category(data, "Фастфуд", "29.12.2021 23:59:59")
     assert result.sum() == 800.0
-
 
 
 def test_spending_by_category_dirty_data():
@@ -129,8 +127,7 @@ def transactions_df_by_weekday():
                                            "26.12.2021 01:23:42"],
                          "Сумма платежа": [
                              "-160,89", "-64,00", "-118,12", "-78,05",
-                             "-564,00", "-800,00", "-20000,00", "-500,00"
-                         ],
+                             "-564,00", "-800,00", "-20000,00", "-500,00"],
                          "Категория": ["Супермаркеты",
                                        "Супермаркеты",
                                        "Каршеринг",
@@ -174,6 +171,7 @@ def test_spending_by_weekday_date_out_range(transactions_df_by_weekday):
 
     expected_result = {'week_dey': {}, 'Категория': {}, 'Средние траты': {}}
     assert dict_result == expected_result
+
 
 def test_spending_by_weekday_bad_date(transactions_df_by_weekday):
     # Проверка на ввод неправильной даты

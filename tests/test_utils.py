@@ -92,7 +92,7 @@ def test_read_excel_empty_path():
 def test_read_excel_success():
     # Создаем фейковый DF
     mock_df = pd.DataFrame({
-        'Дата операции': [ '31.12.2021 16:44:00', '31.12.2021 16:42:04'],
+        'Дата операции': ['31.12.2021 16:44:00', '31.12.2021 16:42:04'],
         'Номер карты': ['*7197', None],
         'Сумма операции': [-160.89, None],
         'Категория': ['Супермаркеты', None],
@@ -103,7 +103,7 @@ def test_read_excel_success():
 
     # Патчим проверку наличия пути и получение Dataframe
     with patch('src.utils.os.path.exists') as mock_exists, \
-        patch('src.utils.pd.read_excel') as mock_read:
+            patch('src.utils.pd.read_excel') as mock_read:
         mock_exists.return_value = True
         mock_read.return_value = mock_df
         # Подсовываем пустышку в качестве пути к файлу
@@ -137,6 +137,7 @@ def data_json():
             "TSLA"
         ]
     }
+
 
 def test_read_json_file_success(data_json):
     # 1. Используем mock_open для имитации открытия файла
@@ -216,7 +217,8 @@ def test_read_json_file_bad_value():
 
 @pytest.mark.parametrize("input_data, expected", [("31.12.2021 16:44:00", "2021.12.31 16:44:00"),
                                                   ("2021.12.21 16:44:00", None),
-                                                  (datetime(year=2021, month=12, day=31, hour=16, minute=44, second=20),
+                                                  (datetime(year=2021, month=12, day=31,
+                                                            hour=16, minute=44, second=20),
                                                    "2021.12.31 16:44:20"),
                                                   ("", None),
                                                   (45555, None)])
@@ -305,9 +307,10 @@ def test_get_currency_and_stocks():
         status, data = get_currency_and_stocks()
 
         # Проверка на соответствие запроса ответу
-        assert data == {'AAPL': {'price': '248.62000'}, 'AMZN': {'price': '199.3'},
-                         'USD/RUB': {'price': '81.47078'},
-                         'EUR/RUB': {'price': '93.9486'}}
+        assert data == {'AAPL': {'price': '248.62000'},
+                        'AMZN': {'price': '199.3'},
+                        'USD/RUB': {'price': '81.47078'},
+                        'EUR/RUB': {'price': '93.9486'}}
         assert status is True
         assert data['AAPL'] == {'price': '248.62000'}
 
@@ -348,6 +351,7 @@ def test_df():
         "Описание": ["Магнит", "Zara", "re:Store", "Ошибка", "Ошибка"]
     })
 
+
 def test_cart_agg_for_main(test_df):
     # Задаем диапазон дат
     start = "2023.10.01 00:00:00"
@@ -374,11 +378,10 @@ def test_cart_agg_for_main(test_df):
         card_info = result["cards"][0]
         assert card_info["last_digits"] == "1234"
         assert card_info["total_spent"] == 300.0  # 100 + 200
-        assert card_info["cashback"] == 3.0       # 300 / 100
+        assert card_info["cashback"] == 3.0  # 300 / 100
 
         # Проверяем топ транзакций (только те, что прошли фильтр по дате)
         assert len(result["top_transactions"]) == 2
         # Первая в топе должна быть самая крупная (200.0)
         assert result["top_transactions"][0]["amount"] == 200.0
         assert result["top_transactions"][0]["date"] == "05.10.2023"
-
