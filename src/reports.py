@@ -1,17 +1,56 @@
+import json
 import os
 from datetime import timedelta
+from idlelib.iomenu import encoding
 
 import pandas as pd
-from typing import Optional
+from typing import Optional, Callable, Any
 import datetime
+
+from mypy.strconv import indent
 
 from src.logger import setup_logging
 from src.utils import read_excel_to_df
+from functools import wraps
 
 PATH_TO_FILE_EXCEL = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "operations.xlsx")
 logger_data_for_reports = setup_logging("get_range_data_for_reports")
 logger_spending_by_category = setup_logging("spending_by_category")
 logger_spending_by_weekday = setup_logging("spending_by_weekday")
+
+
+def log_record(filename: str = "record_file.json") -> Callable:
+    """Декоратор для функции, записывает в файл результат, который возвращает функция, записывает его в файл
+     record_file.txt:
+    Если принимаемая функция выполнилась без исключений в лог записывается результат работы функции
+    Если при исполнении функции возникло исключение в лог записывается сообщение о выпавшем исключении
+    декорируемой функции."""
+
+    def wrapper(func: Callable) -> Callable:
+        @wraps(func)
+        def inner(*args: Any, **kwargs: Any) -> Any:
+            try:
+                result = func(*args, **kwargs)
+                # Если результат — DataFrame, сохраняем его сразу в json файл
+                if isinstance(result, (pd.DataFrame, pd.Series)):
+                    # Если это Series, конвертируем в DataFrame для корректного JSON
+                    output_df = result.to_frame() if isinstance(result, pd.Series) else result
+                    # Записываем результат функции в файл, orient='records' сделает список словарей,
+                    # force_ascii=False сохранит кириллицу
+                    output_df.to_json(filename, orient='records', indent=4, force_ascii=False)
+                    print(f"Успех: результат функции {func.__name__} записан в {filename}")
+                # Если это не DataFrame и Series выводим сообщение, что функция вернула другой тип данных
+                else:
+                    print(f"Предупреждение: функция {func.__name__} вернула {type(result)}, запись пропущена.")
+                return result
+            except Exception as e:
+                error_info = {"function_name": func.__name__, "error": str(e)}
+                with open(filename, "w", encoding="utf-8") as file:
+                    json.dump(error_info, file, ensure_ascii=False, indent=4)
+                # Выводим ошибку дальше
+                raise e
+        return inner
+    return wrapper
 
 
 def get_range_data_for_reports(target_str_date: str = None) -> datetime:
@@ -26,7 +65,7 @@ def get_range_data_for_reports(target_str_date: str = None) -> datetime:
             end_date_obj = datetime.datetime.strptime(target_str_date, '%d.%m.%Y %H:%M:%S')
         except ValueError:  # Если исключение по введенной дате возвращаем текущую дату
             logger_data_for_reports.error(f"Не правильно введена заданная дата, по этому берем текущую "
-                                              f"дату создания диапазона дат в три месяца")
+                                          f"дату создания диапазона дат в три месяца")
             end_date_obj = datetime.datetime.now()
 
     # Если это уже объект datetime — используем его как есть
@@ -46,12 +85,14 @@ def get_range_data_for_reports(target_str_date: str = None) -> datetime:
     return start_date_obj, end_date_obj
 
 
+@log_record()
 def spending_by_category(transactions: pd.DataFrame,
                          category: str,
                          date: Optional[str] = None) -> pd.DataFrame:
     """Функция принимает на вход: датафрейм с транзакциями, название категории, опциональную дату в формате
     DD.MM.YYYY HH:MM:SS. Если дата не передана, то берется текущая дата. Функция возвращает траты по заданной
     категории за последние три месяца (от переданной даты)"""
+
     logger_spending_by_category.info(f"Начало работы функции")
     # Работаем с копией и чистим категорию: убираем строки со значениями равными NaN, убираем пробелы в столбце Категория .notnull()
     logger_spending_by_category.info(f"обработка строк категории от ненужных пробелов и значений NaN")
@@ -82,11 +123,14 @@ def spending_by_category(transactions: pd.DataFrame,
 
     # Получаем траты по искомой категории
     logger_spending_by_category.info(f"Получаем траты по искомой категории: {category}")
-    spending_categories = abs(filtered_df_by_category['Сумма платежа'].sum())
+    # spending_categories = abs(filtered_df_by_category['Сумма платежа'].sum())
+    spending_categories = filtered_df_by_category.groupby("Категория").agg({'Сумма платежа': sum}).reset_index()
+    spending_categories = spending_categories['Сумма платежа'].abs()
 
     return spending_categories
 
 
+@log_record()
 def spending_by_weekday(transactions: pd.DataFrame,
                         date: Optional[str] = None) -> pd.DataFrame:
     """ Функция принимает на вход: датафрейм с транзакциями, опциональную дату. Если дата не передана,
@@ -147,13 +191,14 @@ def spending_by_weekday(transactions: pd.DataFrame,
     return result
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     # print(get_range_data_for_reports("28.05.2025 15:29:44")) # "28.05.2025 15:29:44"
-    df_data = read_excel_to_df(PATH_TO_FILE_EXCEL)
-    print(df_data.head(5))
+    # df_data = read_excel_to_df(PATH_TO_FILE_EXCEL)
+    # print(df_data.head(5))
     # print(df_data.to_json(orient='records', force_ascii=False))
-    # print(spending_by_category(df_data, "Топливо", "29.12.2021 22:28:47"))  # "29.12.2021 22:28:47"
-    print(spending_by_weekday(df_data, "29.12.2021 22:28:47"))
+    # print(spending_by_category(df_data, "Топливо", "29.12.2021 22:28:47")) # "29.12.2021 22:28:47"
+    # print(type(spending_by_category(df_data, "Топливо", "29.12.2021 22:28:47")))
+    # print(spending_by_weekday(df_data, "29.12.2021 22:28:47"))
 
 # # Вычисляем "3 месяца назад"
 #    # Вычитаем из текущего месяца 3. Если уходим в минус — уменьшаем год.
