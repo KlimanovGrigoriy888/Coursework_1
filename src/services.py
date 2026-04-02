@@ -17,8 +17,8 @@ logger_search_with_phone_number = setup_logging("search_with_phone_number")
 
 def cashback_benefit(data_list: list[dict[str, Any]], year: int, month: int) -> str:
     """
-    Функция анализирует список транзакций и подсчитывает потенциальный кешбэк по категориям
-     за указанный год и месяц, принимает на вход data - данные с транзакциями, year — год и
+    Функция принимает на вход список словарей с транзакциями, анализирует список транзакций и подсчитывает потенциальный
+     кешбэк по категориям за указанный год и месяц, принимает на вход data - данные с транзакциями, year — год и
      month — месяц, за который проводится анализ. Возвращает JSON с анализом, сколько на каждой
       категории можно заработать кешбэка.
     """
@@ -189,9 +189,9 @@ def search_with_phone_number(transactions: list[dict]) -> str:
 
 
 # if __name__ == "__main__":
-    # data = read_excel(PATH_TO_FILE_EXCEL)
-    # print(data)
-    # print(cashback_benefit(data, "2021", "02"))
+#     data = read_excel(PATH_TO_FILE_EXCEL)
+#     print(data)
+#     print(cashback_benefit(data, "2021", "02"))
     # print(investment_bank("2021-03",data, 50))
     # print(simple_search('Переводы', data))
     # print(search_with_phone_number(data))
