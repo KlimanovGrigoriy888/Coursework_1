@@ -11,7 +11,6 @@ import os
 
 from pandas import DataFrame
 
-
 from src.logger import setup_logging
 
 # Пути открытия json и excel файлов с данными.
@@ -88,7 +87,7 @@ def read_json_file(path_to_file_json: str) -> dict[str, Any]:
 
 def read_excel(path_to_file_excel: str) -> list[dict[Any, Any]]:
     """Принимает путь до .xlsx файла финансовых операций, возвращает список словарей с транзакциями.
-     !!!! Пока что нигде не используется """
+      """
     if not path_to_file_excel or not os.path.exists(path_to_file_excel):
         return [dict()]
     excel_data_df = pd.read_excel(path_to_file_excel)
@@ -110,7 +109,7 @@ def read_excel_to_df(path_to_file_excel: str) -> list[dict[Any, Any]] | DataFram
     return df.fillna("")
 
 
-def transformed_date(first_str_date: str) -> str|None:
+def transformed_date(first_str_date: str) -> str | None:
     """Принимает строку в формате DD.MM.YYYY HH:MM:SS и возвращает "YYYY.MM.DD HH:MM:SS"
      для корректного сравнения строк в DataFrame."""
     logger_transformed_date.info("Начало работы функции")
@@ -157,8 +156,10 @@ def get_range_data(first_str_date: str) -> dict[str, str] | None:
         logger_get_range_data.info(f"Возникло исключение {e}, возбуждаем исключение ValueError")
         return None
 
-def clean_amount(value: float|str) -> float:
-    """Очищает значение суммы: убирает запятые и конвертирует во float."""
+
+def clean_amount(value: float | str) -> float:
+    """Принимает строку с цифровым значение или цифры и очищает значение суммы: убирает запятые,
+     лишние пробелы по краям и конвертирует во float."""
     try:
         cleaned = str(value).replace(',', '.').strip()
         return float(cleaned)
@@ -221,8 +222,8 @@ def cart_agg_for_main(operations_df: pd.DataFrame, start_data: str, stop_data: s
 
 
 def settings_for_api(path_to_settings_json: str) -> str:
-    """"Функция принимает путь до .json файла с установками для запроса по API,
-     возвращает необходимую строку для url "https://api.twelvedata.com" в необходимом формате для API запроса """
+    """Функция принимает путь до .json файла с установками для запроса по API, возвращает необходимую
+     строку для API запроса по url адресу "https://api.twelvedata.com" в необходимом формате."""
     if not path_to_settings_json:
         return ""
     result_from_json = read_json_file(path_to_settings_json)
@@ -253,7 +254,7 @@ def get_currency_and_stocks() -> tuple[bool, dict[str, Any]]:
     url = f"{URL}/price?symbol={result_str_symbols}&apikey={API}"
 
     try:
-        response = requests.get(url, timeout = 5)
+        response = requests.get(url, timeout=5)
         data = response.json()
         status = response.status_code
         if status != 200:
@@ -265,14 +266,13 @@ def get_currency_and_stocks() -> tuple[bool, dict[str, Any]]:
         return False, {}
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     # print(time_of_day())
     # print(transformed_date("31.12.2021 16:44:00"))
     # print(time_of_day())
 
-
-    df_data = read_excel_to_df(PATH_TO_FILE_EXCEL)
-    print(df_data.head().to_dict())
+    # df_data = read_excel_to_df(PATH_TO_FILE_EXCEL)
+    # print(df_data.head().to_dict())
     # filtered_data = cart_agg_for_main(df_data, "2021.11.25 19:02:06", "2021.11.29 18:09:38")
     # print(filtered_data)
 
